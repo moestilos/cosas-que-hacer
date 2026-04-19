@@ -157,6 +157,28 @@ export async function PUT(req: NextRequest) {
     // Intentar persistir en BD. Si falla, caemos a modo stateless.
     try {
       await ensureSchema()
+
+      // Garantizar que el user_profile existe para no romper la FK
+      // de pdf_generations.clerk_user_id. Obtenemos email/nombre de Clerk.
+      if (userId) {
+        let email: string | null = null
+        let fullName: string | null = null
+        try {
+          const { currentUser } = await import('@clerk/nextjs/server')
+          const u = await currentUser()
+          email = u?.emailAddresses?.[0]?.emailAddress ?? null
+          fullName = [u?.firstName, u?.lastName].filter(Boolean).join(' ') || null
+        } catch {}
+        await sql`
+          INSERT INTO user_profiles (clerk_user_id, email, full_name, role)
+          VALUES (${userId}, ${email ?? `${userId}@unknown.local`}, ${fullName}, 'user')
+          ON CONFLICT (clerk_user_id) DO UPDATE SET
+            email = EXCLUDED.email,
+            full_name = COALESCE(EXCLUDED.full_name, user_profiles.full_name),
+            updated_at = now()
+        `
+      }
+
       const rows = await sql`
         INSERT INTO pdf_generations (
           clerk_user_id, profile_type, client_name, service_desc,
