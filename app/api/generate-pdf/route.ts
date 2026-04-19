@@ -1,16 +1,47 @@
 /**
  * API ROUTE: /api/generate-pdf
  * =============================
- * Genera y sirve PDFs. Usa Neon para la BD y Clerk para la auth.
+ * Genera y sirve PDFs. Usa Neon para persistir, pero cae en modo stateless
+ * (datos codificados en el propio generation_id) si la BD no esta disponible.
  *
- * PUT  → Crea la generación en BD (preview o free_admin si es admin)
+ * PUT  → Crea la generación (BD o stateless)
  * POST → Genera el PDF y lo devuelve como fichero descargable
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { sql, isUserAdmin } from '@/lib/db'
+import { sql, isUserAdmin, isAdminByClerkEmail } from '@/lib/db'
 import { ensureSchema } from '@/lib/db/schema'
 import { generatePDF } from '@/lib/pdf/generator'
+import crypto from 'crypto'
+
+// Prefijo que marca un id "stateless" (sin BD) -> payload base64url embebido
+const STATELESS_PREFIX = 'sl_'
+
+function encodeStateless(payload: Record<string, unknown>): string {
+  const json = JSON.stringify(payload)
+  const b64 = Buffer.from(json, 'utf8').toString('base64url')
+  return `${STATELESS_PREFIX}${b64}`
+}
+
+function decodeStateless(id: string): Record<string, unknown> | null {
+  if (!id.startsWith(STATELESS_PREFIX)) return null
+  try {
+    const b64 = id.slice(STATELESS_PREFIX.length)
+    const json = Buffer.from(b64, 'base64url').toString('utf8')
+    return JSON.parse(json)
+  } catch {
+    return null
+  }
+}
+
+async function tryAuthUserId(): Promise<string | null> {
+  try {
+    const a = await auth()
+    return a.userId ?? null
+  } catch {
+    return null
+  }
+}
 
 // ============================================
 // POST: Genera y descarga el PDF
@@ -18,56 +49,74 @@ import { generatePDF } from '@/lib/pdf/generator'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { generation_id, download_token } = body
+    const { generation_id, download_token } = body as {
+      generation_id?: string
+      download_token?: string
+    }
 
     if (!generation_id) {
       return NextResponse.json({ error: 'generation_id requerido' }, { status: 400 })
     }
 
-    // Obtener la generación de la BD
-    const rows = await sql`
-      SELECT * FROM pdf_generations WHERE id = ${generation_id} LIMIT 1
-    `
-    const generation = rows[0] as {
-      id: string; profile_type: string; client_name: string;
-      service_desc: string; price: number; status: string;
-      download_token: string; quote_data: Record<string, unknown>
-    } | undefined
+    type PdfPayload = {
+      profile_type: string
+      client_name: string
+      service_desc: string
+      price: number
+      status: string
+      download_token: string
+      quote_data: Record<string, unknown>
+    }
 
-    if (!generation) {
+    let payload: PdfPayload | null = null
+
+    // 1) Camino stateless (id autocontenido)
+    const stateless = decodeStateless(generation_id)
+    if (stateless) {
+      payload = stateless as unknown as PdfPayload
+    } else {
+      // 2) Camino BD
+      try {
+        const rows = await sql`
+          SELECT * FROM pdf_generations WHERE id = ${generation_id} LIMIT 1
+        `
+        const row = rows[0] as PdfPayload | undefined
+        if (row) payload = row
+      } catch (e) {
+        console.warn('[generate-pdf POST] BD no disponible, sin fallback posible:', e)
+      }
+    }
+
+    if (!payload) {
       return NextResponse.json({ error: 'Generación no encontrada' }, { status: 404 })
     }
 
-    // Verificar si el usuario actual es admin
-    let userId: string | null = null
-    try {
-      const a = await auth()
-      userId = a.userId
-    } catch {}
-    const adminCheck = userId ? await isUserAdmin(userId).catch(() => false) : false
+    const userId = await tryAuthUserId()
+    let adminCheck = userId ? await isUserAdmin(userId).catch(() => false) : false
+    if (!adminCheck && userId) adminCheck = await isAdminByClerkEmail()
 
     // Verificar autorización
     if (!adminCheck) {
-      if (generation.status === 'preview') {
+      if (payload.status === 'preview') {
         return NextResponse.json({ error: 'Pago requerido para descargar el PDF' }, { status: 403 })
       }
-      if (generation.download_token !== download_token) {
+      if (payload.download_token !== download_token) {
         return NextResponse.json({ error: 'Token de descarga inválido' }, { status: 403 })
       }
     }
 
-    // Construir datos del PDF
     const quoteData = {
-      profile_type: generation.profile_type,
-      ...generation.quote_data,
-      client_name: generation.client_name,
-      service_description: generation.service_desc,
-      price: Number(generation.price),
+      profile_type: payload.profile_type,
+      ...payload.quote_data,
+      client_name: payload.client_name,
+      service_description: payload.service_desc,
+      price: Number(payload.price),
     }
 
     const pdfBuffer = await generatePDF(quoteData as Parameters<typeof generatePDF>[0])
 
-    const filename = `presupuesto-${generation.profile_type}-${generation_id.slice(0, 8)}.pdf`
+    const safeId = generation_id.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 16) || 'pdf'
+    const filename = `presupuesto-${payload.profile_type}-${safeId}.pdf`
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
@@ -79,12 +128,13 @@ export async function POST(req: NextRequest) {
     })
   } catch (error) {
     console.error('[generate-pdf POST]', error)
-    return NextResponse.json({ error: 'Error generando el PDF' }, { status: 500 })
+    const detail = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ error: 'Error generando el PDF', detail }, { status: 500 })
   }
 }
 
 // ============================================
-// PUT: Crea la generación en BD
+// PUT: Crea la generación (BD o stateless fallback)
 // ============================================
 export async function PUT(req: NextRequest) {
   try {
@@ -98,45 +148,62 @@ export async function PUT(req: NextRequest) {
       )
     }
 
-    // Auto-init schema (idempotente, una vez por worker)
-    await ensureSchema()
+    const userId = await tryAuthUserId()
+    let adminCheck = userId ? await isUserAdmin(userId).catch(() => false) : false
+    if (!adminCheck && userId) adminCheck = await isAdminByClerkEmail()
+    const quoteData = { vat_percent: vat_percent ?? 21, ...extraFields, service_description }
+    const status = adminCheck ? 'free_admin' : 'preview'
 
-    // Obtener usuario de Clerk (puede ser null si no está autenticado o Clerk no configurado)
-    let userId: string | null = null
+    // Intentar persistir en BD. Si falla, caemos a modo stateless.
     try {
-      const a = await auth()
-      userId = a.userId
-    } catch (e) {
-      console.warn('[generate-pdf PUT] auth() failed, continuando como anonimo:', e)
+      await ensureSchema()
+      const rows = await sql`
+        INSERT INTO pdf_generations (
+          clerk_user_id, profile_type, client_name, service_desc,
+          price, status, quote_data
+        )
+        VALUES (
+          ${userId ?? null},
+          ${profile_type},
+          ${client_name},
+          ${service_description},
+          ${Number(price)},
+          ${status},
+          ${JSON.stringify(quoteData)}
+        )
+        RETURNING id, download_token, status
+      `
+      const generation = rows[0] as { id: string; download_token: string; status: string }
+
+      return NextResponse.json({
+        generation_id: generation.id,
+        download_token: generation.download_token,
+        status: generation.status,
+        is_admin: adminCheck,
+      })
+    } catch (dbError) {
+      console.warn('[generate-pdf PUT] BD no disponible, usando modo stateless:', dbError)
+
+      const downloadToken = crypto.randomBytes(16).toString('hex')
+      const payload = {
+        profile_type,
+        client_name,
+        service_desc: service_description,
+        price: Number(price),
+        status,
+        download_token: downloadToken,
+        quote_data: quoteData,
+      }
+      const generation_id = encodeStateless(payload)
+
+      return NextResponse.json({
+        generation_id,
+        download_token: downloadToken,
+        status,
+        is_admin: adminCheck,
+        stateless: true,
+      })
     }
-    const adminCheck = userId ? await isUserAdmin(userId).catch(() => false) : false
-
-    // Insertar en Neon
-    const rows = await sql`
-      INSERT INTO pdf_generations (
-        clerk_user_id, profile_type, client_name, service_desc,
-        price, status, quote_data
-      )
-      VALUES (
-        ${userId ?? null},
-        ${profile_type},
-        ${client_name},
-        ${service_description},
-        ${Number(price)},
-        ${adminCheck ? 'free_admin' : 'preview'},
-        ${JSON.stringify({ vat_percent: vat_percent ?? 21, ...extraFields, service_description })}
-      )
-      RETURNING id, download_token, status
-    `
-
-    const generation = rows[0] as { id: string; download_token: string; status: string }
-
-    return NextResponse.json({
-      generation_id: generation.id,
-      download_token: generation.download_token,
-      status: generation.status,
-      is_admin: adminCheck,
-    })
   } catch (error) {
     console.error('[generate-pdf PUT]', error)
     const detail = error instanceof Error ? error.message : String(error)

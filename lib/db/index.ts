@@ -80,7 +80,7 @@ export async function getUserProfile(clerkUserId: string): Promise<UserProfile |
 }
 
 /** Emails que siempre tienen acceso de admin, independientemente del rol en BD */
-const HARDCODED_ADMIN_EMAILS = ['gmateosoficial@gmail.com']
+export const HARDCODED_ADMIN_EMAILS = ['gmateosoficial@gmail.com']
 
 /**
  * Verifica si un usuario tiene rol admin.
@@ -92,6 +92,22 @@ export async function isUserAdmin(clerkUserId: string | null): Promise<boolean> 
   if (!profile) return false
   if (HARDCODED_ADMIN_EMAILS.includes(profile.email)) return true
   return profile.role === 'admin'
+}
+
+/**
+ * Admin check sin BD: consulta Clerk directamente para obtener el email.
+ * Se usa como fallback cuando DATABASE_URL no esta disponible.
+ */
+export async function isAdminByClerkEmail(): Promise<boolean> {
+  try {
+    const { currentUser } = await import('@clerk/nextjs/server')
+    const user = await currentUser()
+    if (!user) return false
+    const emails = user.emailAddresses?.map(e => e.emailAddress.toLowerCase()) ?? []
+    return emails.some(e => HARDCODED_ADMIN_EMAILS.map(x => x.toLowerCase()).includes(e))
+  } catch {
+    return false
+  }
 }
 
 /**
