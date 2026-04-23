@@ -1,0 +1,18 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import BottomNav from '@/components/BottomNav.tsx';
+import TopBar from '@/components/TopBar.tsx';
+import FabSheet from '@/components/FabSheet.tsx';
+interface Props { title?: string; active: 'today' | 'upcoming' | 'all' | 'done' | 'tags'; demo?: boolean; userName?: string; }
+const { title, active, demo = false, userName } = Astro.props;
+---
+<BaseLayout title={title}>
+  <div class="min-h-dvh flex flex-col pt-safe-top">
+    <TopBar client:load userName={userName} demo={demo} />
+    <main class="flex-1 w-full max-w-2xl mx-auto px-4 pb-32">
+      <slot />
+    </main>
+    <FabSheet client:load demo={demo} />
+    <BottomNav client:load active={active} />
+  </div>
+</BaseLayout>

@@ -1,0 +1,10 @@
+---
+import AppShell from '@/layouts/AppShell.astro';
+import TaskList from '@/components/TaskList.tsx';
+const user = Astro.locals.user;
+---
+<AppShell title="Hoy" active="today" userName={user?.name}>
+  <h2 class="text-2xl font-bold mt-4">Hoy</h2>
+  <p class="text-sm text-muted">{new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+  <TaskList view="today" client:load />
+</AppShell>

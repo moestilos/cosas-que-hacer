@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: 240 253 250;
+    --surface: 255 255 255;
+    --border: 226 232 240;
+    --text: 19 78 74;
+    --muted: 71 85 105;
+    --primary: 13 148 136;
+    --cta: 249 115 22;
+    --danger: 220 38 38;
+    --warning: 217 119 6;
+  }
+  .dark {
+    --bg: 10 15 14;
+    --surface: 17 24 23;
+    --border: 31 42 40;
+    --text: 230 255 250;
+    --muted: 122 143 140;
+    --primary: 20 184 166;
+    --cta: 249 115 22;
+    --danger: 239 68 68;
+    --warning: 245 158 11;
+  }
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-bg text-text min-h-dvh;
+    overscroll-behavior-y: none;
+  }
+  button, a { cursor: pointer; }
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-bg;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors duration-150;
+  }
+  .btn-primary { @apply btn bg-primary text-white hover:opacity-90 disabled:opacity-50; }
+  .btn-ghost { @apply btn text-text hover:bg-surface; }
+  .btn-danger { @apply btn bg-danger text-white hover:opacity-90; }
+  .input {
+    @apply w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-text placeholder:text-muted focus:border-primary outline-none transition-colors;
+  }
+  .card {
+    @apply rounded-xl border border-border bg-surface;
+  }
+}

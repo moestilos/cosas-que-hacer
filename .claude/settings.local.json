@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 ~/.claude/skills/ui-ux-pro-max/scripts/search.py \"productivity todo task manager mobile-first minimal dark\" --design-system -p \"Cosas Que Hacer\" -f markdown)"
+    ]
+  }
+}

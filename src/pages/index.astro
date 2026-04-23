@@ -1,0 +1,18 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+const user = Astro.locals.user;
+if (user) return Astro.redirect('/today');
+---
+<BaseLayout title="Cosas Que Hacer">
+  <div class="min-h-dvh flex flex-col items-center justify-center px-6 text-center gap-8">
+    <div class="space-y-3">
+      <h1 class="text-4xl font-bold tracking-tight">Cosas Que Hacer</h1>
+      <p class="text-muted text-lg">Captura rápido. No pierdas nada.</p>
+    </div>
+    <div class="flex flex-col gap-3 w-full max-w-xs">
+      <a href="/login" class="btn-primary">Entrar</a>
+      <a href="/signup" class="btn-ghost border border-border">Crear cuenta</a>
+      <a href="/demo" class="text-primary text-sm mt-2 hover:underline">Probar sin registro</a>
+    </div>
+  </div>
+</BaseLayout>

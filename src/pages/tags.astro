@@ -1,0 +1,9 @@
+---
+import AppShell from '@/layouts/AppShell.astro';
+import TagsManager from '@/components/TagsManager.tsx';
+const user = Astro.locals.user;
+---
+<AppShell title="Tags" active="tags" userName={user?.name}>
+  <h2 class="text-2xl font-bold mt-4">Tags</h2>
+  <TagsManager client:load />
+</AppShell>

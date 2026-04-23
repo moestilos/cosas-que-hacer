@@ -1,242 +1,115 @@
-# PresupuestoPro 📄
+# Cosas Que Hacer
 
-Generador de presupuestos PDF profesionales para autónomos.
-Preview gratuito · Descarga por 2 € · Personalizado por perfil profesional.
-
----
+Todo app mobile-first PWA. Captura rápido, no pierdas nada.
 
 ## Stack
 
-- **Framework**: Next.js 14 (App Router)
-- **Estilos**: Tailwind CSS
-- **Base de datos + Auth**: Supabase
-- **PDF**: @react-pdf/renderer (serverless-friendly)
-- **Pagos**: Stripe
-- **Deploy**: Netlify
+- **Astro 5** (SSR, output server) + React 19 islands
+- **Tailwind v3** (dark-first, CSS vars)
+- **Neon Postgres** + **Drizzle ORM**
+- **better-auth** (email + password, sesiones cookie)
+- **Zustand** (estado cliente + optimistic updates)
+- **framer-motion** (swipe + sheet)
+- **@dnd-kit** (reorder manual)
+- **Lucide** iconos
+- **@vite-pwa/astro** manifest + SW offline
+- Deploy: **Vercel**
 
----
-
-## Requisitos previos
-
-- Node.js 20+
-- Cuenta en [Supabase](https://supabase.com) (gratis)
-- Cuenta en [Stripe](https://stripe.com)
-- Cuenta en [Netlify](https://netlify.com) (gratis)
-
----
-
-## Instalación local
+## Setup local
 
 ```bash
-# 1. Instalar dependencias
+# 1. Instalar deps
 npm install
 
-# 2. Copiar variables de entorno
-cp .env.example .env.local
+# 2. Crear DB en neon.tech, copiar connection string
+cp .env.example .env
+# rellena DATABASE_URL, BETTER_AUTH_SECRET (openssl rand -base64 32), BETTER_AUTH_URL, PUBLIC_APP_URL
 
-# 3. Rellenar las variables (ver sección siguiente)
-# 4. Ejecutar en desarrollo
+# 3. Generar + aplicar migraciones
+npm run db:generate
+npm run db:push      # o: npm run db:migrate (después de generate)
+
+# 4. Dev
 npm run dev
+# http://localhost:4321
 ```
 
-Abre [http://localhost:3000](http://localhost:3000)
+## Env vars
 
----
+| Var | Descripción |
+|-----|-------------|
+| `DATABASE_URL` | Postgres connection string (Neon) |
+| `BETTER_AUTH_SECRET` | Secreto sesiones (`openssl rand -base64 32`) |
+| `BETTER_AUTH_URL` | URL base del deploy (ej. `http://localhost:4321`) |
+| `PUBLIC_APP_URL` | URL pública cliente (igual que arriba en dev) |
 
-## Variables de entorno
+## Rutas
 
-Copia `.env.example` a `.env.local` y rellena:
+| Ruta | Descripción |
+|------|-------------|
+| `/` | Landing + enlaces auth / demo |
+| `/login` · `/signup` | Auth email+password |
+| `/demo` | Modo sin cuenta (localStorage) |
+| `/today` | Vencidas + hoy + sin fecha |
+| `/upcoming` | Próximos 7 días |
+| `/all` | Todas pendientes |
+| `/done` | Completadas |
+| `/tags` | Gestión de tags |
+| `/tag/[id]` | Tareas por tag |
+| `/api/auth/*` | better-auth handler |
+| `/api/tasks` · `/api/tasks/[id]` | CRUD tasks |
+| `/api/tags` · `/api/tags/[id]` | CRUD tags |
 
-### Supabase
+## Interacciones
 
-Ve a [supabase.com](https://supabase.com) → tu proyecto → **Settings → API**
+- **Añadir tarea**: FAB bottom-right o tecla `N`
+- **Swipe izquierda**: eliminar (toast undo 5s)
+- **Swipe derecha**: completar
+- **Drag handle**: modo "orden manual"
+- **Tecla `Esc`**: cerrar sheets
+- Dark por defecto, toggle sol/luna en TopBar
+- Búsqueda: icono lupa, filtra en vivo
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://tuproyecto.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
+## Schema DB
 
-### Stripe
+Ver `src/db/schema.ts`. Tablas:
+- `user` · `session` · `account` · `verification` (better-auth)
+- `tasks` (self-FK `parent_id` para subtareas, 1 nivel)
+- `tags`
 
-Ve a [dashboard.stripe.com](https://dashboard.stripe.com) → **Developers → API keys**
+Índices: `tasks_user_due`, `tasks_user_parent`.
+Autorización por `user_id = sesión` en cada query (ver `src/db/queries.ts`).
 
-```env
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...   # Se obtiene al crear el webhook (ver abajo)
-```
+## Deploy Vercel
 
-### App
+1. Push branch a GitHub.
+2. Import en Vercel, framework detectado = Astro.
+3. Env vars en Vercel idénticas a `.env`.
+4. `BETTER_AUTH_URL` y `PUBLIC_APP_URL` = dominio Vercel.
+5. Primer deploy aplica migrations vía `npm run db:push` (ejecutar manual primera vez).
 
-```env
-NEXT_PUBLIC_APP_URL=http://localhost:3000   # En prod: https://tupdominio.netlify.app
-```
+## PWA
 
----
+- Manifest auto-generado por `@vite-pwa/astro`
+- SW cachea assets estáticos + google fonts
+- Instalable iOS (Share → Add to Home Screen) y Android
+- Safe-area-inset usado en FAB, BottomNav y sheets
 
-## Configurar Supabase
+## Accesibilidad
 
-### 1. Ejecutar migraciones
+- Focus rings visibles (`:focus-visible`)
+- Todos los iconos con `aria-label` o `aria-hidden`
+- Touch targets ≥ 44x44
+- `prefers-reduced-motion` respetado
+- Contraste AA mínimo dark y light
 
-En **Supabase Dashboard → SQL Editor → New Query**, pega y ejecuta:
-
-```
-supabase/migrations/001_initial_schema.sql
-```
-
-Esto crea todas las tablas, políticas RLS y funciones necesarias.
-
-### 2. Asignar rol admin
-
-En el SQL Editor ejecuta:
-
-```sql
-SELECT set_admin_role('tu@email.com');
-```
-
-El usuario con ese email tendrá acceso completo al panel `/admin` y podrá descargar PDFs sin pagar.
-
----
-
-## Configurar Stripe
-
-### 1. Crear el Webhook
-
-En [Stripe Dashboard](https://dashboard.stripe.com) → **Developers → Webhooks → Add endpoint**:
-
-- **URL**: `https://tudominio.com/api/webhooks/stripe`
-- **Eventos**: `checkout.session.completed`, `payment_intent.payment_failed`
-- Copia el **Signing secret** → ponlo en `STRIPE_WEBHOOK_SECRET`
-
-### 2. Probar en local con Stripe CLI
+## Scripts
 
 ```bash
-# Instalar Stripe CLI: https://stripe.com/docs/stripe-cli
-stripe login
-stripe listen --forward-to localhost:3000/api/webhooks/stripe
+npm run dev          # astro dev
+npm run build        # astro build
+npm run preview      # preview build
+npm run db:generate  # drizzle-kit generate
+npm run db:push      # push schema sin migration
+npm run db:migrate   # aplicar migrations generadas
 ```
-
----
-
-## Despliegue en Netlify
-
-### Opción A: desde GitHub (recomendado)
-
-1. Sube el proyecto a GitHub
-2. En Netlify: **Add new site → Import from Git**
-3. Build command: `npm run build`
-4. Publish directory: `.next`
-5. Instala el plugin: **@netlify/plugin-nextjs** (se configura automáticamente con `netlify.toml`)
-6. En **Site settings → Environment variables**, añade todas las variables de `.env.example` con sus valores de producción
-
-### Opción B: Netlify CLI
-
-```bash
-npm install -g netlify-cli
-netlify deploy --build --prod
-```
-
-> **Importante**: en producción, cambia `NEXT_PUBLIC_APP_URL` a tu dominio de Netlify.
-> El webhook de Stripe también debe apuntar al dominio de producción.
-
----
-
-## Estructura del proyecto
-
-```
-presupuestos-autonomos/
-├── app/
-│   ├── page.tsx                    # Generador principal (3 pasos)
-│   ├── layout.tsx                  # Layout con Navbar
-│   ├── login/page.tsx              # Login Supabase
-│   ├── register/page.tsx           # Registro
-│   ├── admin/page.tsx              # Dashboard admin
-│   ├── success/page.tsx            # Post-pago Stripe
-│   └── api/
-│       ├── generate-pdf/route.ts   # Genera y sirve el PDF
-│       ├── create-checkout-session/route.ts  # Crea sesión Stripe
-│       ├── webhooks/stripe/route.ts          # Webhook Stripe
-│       ├── admin/stats/route.ts              # Métricas admin
-│       └── track-visit/route.ts             # Analytics básico
-├── components/
-│   ├── ProfileSelector.tsx         # Selector de perfil profesional
-│   ├── QuoteForm.tsx               # Formulario dinámico
-│   ├── QuotePreview.tsx            # Preview + CTA de pago
-│   ├── Navbar.tsx                  # Navegación
-│   └── AdminStats.tsx              # Dashboard de métricas
-├── lib/
-│   ├── supabase/
-│   │   ├── client.ts               # Cliente navegador
-│   │   └── server.ts               # Cliente servidor + admin
-│   ├── stripe.ts                   # Instancia Stripe
-│   ├── profiles.ts                 # Configuración de perfiles
-│   └── pdf/
-│       ├── generator.ts            # Orquestador de PDFs
-│       └── templates/
-│           ├── designer.tsx        # Template diseñador web
-│           ├── freelancer.tsx      # Template freelancer
-│           ├── trainer.tsx         # Template entrenador personal
-│           └── photographer.tsx    # Template fotógrafo
-├── supabase/
-│   └── migrations/
-│       └── 001_initial_schema.sql  # Tablas + RLS + funciones
-├── middleware.ts                   # Auth + protección de rutas
-├── netlify.toml                    # Configuración de despliegue
-└── .env.example                    # Variables de entorno
-```
-
----
-
-## Añadir un nuevo perfil profesional
-
-1. **Editar `lib/profiles.ts`**: añadir una nueva entrada en `PROFILES` con los campos específicos
-2. **Crear `lib/pdf/templates/nuevo-perfil.tsx`**: copiar un template existente y adaptarlo
-3. **Actualizar `lib/pdf/generator.ts`**: añadir el import y el `case` en el switch
-4. **Actualizar el tipo `ProfileType`** en `lib/profiles.ts`
-
----
-
-## Flujo del negocio
-
-```
-Usuario llega → Elige perfil → Rellena formulario
-                                        ↓
-                              API: PUT /api/generate-pdf
-                              (crea registro en Supabase)
-                                        ↓
-                              Preview gratuito mostrado
-                                        ↓
-                    ¿Es admin? ──── SÍ ──→ Descarga gratis directa
-                         │
-                        NO
-                         ↓
-                  Clic en "Pagar"
-                         ↓
-              API: POST /api/create-checkout-session
-                         ↓
-                Stripe Checkout (2€)
-                         ↓
-              Webhook: checkout.session.completed
-              (actualiza status a 'paid' en Supabase)
-                         ↓
-              Redirect a /success con session_id
-                         ↓
-                 Descarga del PDF habilitada
-```
-
----
-
-## Preguntas frecuentes
-
-**¿Puedo cambiar el precio?**
-Sí. Edita `PDF_PRICE_CENTS` en `lib/stripe.ts` (en céntimos de euro).
-
-**¿Cómo probar pagos?**
-Usa la tarjeta de test de Stripe: `4242 4242 4242 4242`, cualquier fecha futura y CVC.
-
-**¿Los PDFs se almacenan?**
-No. Los PDFs se generan al vuelo en cada descarga — solo se guarda el presupuesto en JSON en Supabase.
-
-**¿El admin siempre descarga gratis?**
-Sí. El backend verifica el rol antes de generar el PDF y no requiere pago si el rol es `admin`.
