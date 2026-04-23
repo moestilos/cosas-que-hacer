@@ -1,10 +1,11 @@
 ---
 import AppShell from '@/layouts/AppShell.astro';
 import TaskList from '@/components/TaskList.tsx';
+import PageHeader from '@/components/PageHeader.tsx';
 const user = Astro.locals.user;
 const { id } = Astro.params;
 ---
 <AppShell title="Tag" active="tags" userName={user?.name}>
-  <h2 class="text-2xl font-bold mt-4">Por tag</h2>
+  <PageHeader title="Por tag" subtitle="Tareas filtradas" />
   <TaskList view="tag" tagId={id} client:load />
 </AppShell>

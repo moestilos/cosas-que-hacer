@@ -13,9 +13,9 @@ export default function BottomNav({ active }: { active: typeof items[number]['ke
   return (
     <nav
       aria-label="Navegación principal"
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface/95 backdrop-blur pb-safe-bottom"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-bg/85 backdrop-blur-xl pb-safe-bottom"
     >
-      <ul className="grid grid-cols-5 max-w-2xl mx-auto">
+      <ul className="grid grid-cols-5 max-w-2xl mx-auto px-2">
         {items.map(({ key, label, href, Icon }) => {
           const isActive = key === active;
           return (
@@ -24,11 +24,16 @@ export default function BottomNav({ active }: { active: typeof items[number]['ke
                 href={href}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                  'flex flex-col items-center gap-0.5 py-2 text-xs transition-colors',
+                  'group relative flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors',
                   isActive ? 'text-primary' : 'text-muted hover:text-text',
                 )}
               >
-                <Icon size={22} strokeWidth={isActive ? 2.25 : 1.75} aria-hidden />
+                <span className={cn(
+                  'relative flex items-center justify-center w-10 h-7 rounded-full transition-all',
+                  isActive && 'bg-primary/10',
+                )}>
+                  <Icon size={20} strokeWidth={isActive ? 2.25 : 1.75} aria-hidden />
+                </span>
                 <span>{label}</span>
               </a>
             </li>

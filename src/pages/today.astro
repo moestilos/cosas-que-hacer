@@ -1,10 +1,12 @@
 ---
 import AppShell from '@/layouts/AppShell.astro';
 import TaskList from '@/components/TaskList.tsx';
+import PageHeader from '@/components/PageHeader.tsx';
 const user = Astro.locals.user;
+const d = new Date();
+const subtitle = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
 ---
 <AppShell title="Hoy" active="today" userName={user?.name}>
-  <h2 class="text-2xl font-bold mt-4">Hoy</h2>
-  <p class="text-sm text-muted">{new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+  <PageHeader title="Hoy" subtitle={subtitle.charAt(0).toUpperCase() + subtitle.slice(1)} />
   <TaskList view="today" client:load />
 </AppShell>

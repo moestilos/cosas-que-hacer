@@ -48,12 +48,20 @@ const copy: Record<View, { title: string; sub: string }> = {
 export default function EmptyState({ view }: { view: View }) {
   const c = copy[view];
   return (
-    <div className="flex flex-col items-center justify-center text-center py-16 gap-4">
-      {svgs[view] ?? svgs.all}
-      <div>
-        <p className="text-lg font-semibold">{c.title}</p>
-        <p className="text-sm text-muted mt-1">{c.sub}</p>
+    <div className="flex flex-col items-center justify-center text-center py-20 gap-5 animate-fade-up">
+      <div className="relative">
+        <div className="absolute inset-0 bg-primary/10 blur-2xl rounded-full" aria-hidden />
+        <div className="relative">{svgs[view] ?? svgs.all}</div>
       </div>
+      <div className="space-y-1.5">
+        <p className="text-xl font-bold tracking-tight">{c.title}</p>
+        <p className="text-sm text-muted max-w-[260px]">{c.sub}</p>
+      </div>
+      {view !== 'done' && (
+        <p className="text-xs text-muted mt-2 inline-flex items-center gap-1.5">
+          Pulsa <kbd className="kbd">N</kbd> o el botón <span className="text-cta font-semibold">+</span>
+        </p>
+      )}
     </div>
   );
 }

@@ -4,15 +4,46 @@ const user = Astro.locals.user;
 if (user) return Astro.redirect('/today');
 ---
 <BaseLayout title="Cosas Que Hacer">
-  <div class="min-h-dvh flex flex-col items-center justify-center px-6 text-center gap-8">
-    <div class="space-y-3">
-      <h1 class="text-4xl font-bold tracking-tight">Cosas Que Hacer</h1>
-      <p class="text-muted text-lg">Captura rápido. No pierdas nada.</p>
+  <div class="min-h-dvh flex flex-col items-center justify-center px-6 text-center gap-10 relative overflow-hidden pt-safe-top pb-safe-bottom">
+    <!-- decorative orb -->
+    <div aria-hidden class="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="relative space-y-5 animate-fade-up max-w-md">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-surface/60 backdrop-blur text-xs text-muted">
+        <span class="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
+        Rápido. Offline. Sin anuncios.
+      </div>
+      <h1 class="text-5xl sm:text-6xl font-extrabold tracking-tight leading-[1.05] text-balance">
+        No te olvides<br/>
+        <span class="bg-gradient-to-r from-primary to-cta bg-clip-text text-transparent">de nada.</span>
+      </h1>
+      <p class="text-muted text-lg text-pretty max-w-sm mx-auto">
+        Captura lo que tienes que hacer en un toque. Hoy, esta semana, o cuando sea.
+      </p>
     </div>
-    <div class="flex flex-col gap-3 w-full max-w-xs">
-      <a href="/login" class="btn-primary">Entrar</a>
-      <a href="/signup" class="btn-ghost border border-border">Crear cuenta</a>
-      <a href="/demo" class="text-primary text-sm mt-2 hover:underline">Probar sin registro</a>
+
+    <div class="relative flex flex-col gap-2.5 w-full max-w-xs animate-fade-up" style="animation-delay: 80ms">
+      <a href="/signup" class="btn-primary text-base py-3.5">Empezar gratis</a>
+      <a href="/login" class="btn-ghost text-base py-3.5">Ya tengo cuenta</a>
+      <a href="/demo" class="text-primary text-sm mt-3 hover:underline inline-flex items-center justify-center gap-1">
+        Probar sin registro
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+    </div>
+
+    <div class="relative flex items-center gap-6 text-xs text-muted animate-fade-up" style="animation-delay: 160ms">
+      <span class="flex items-center gap-1.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><polyline points="20 6 9 17 4 12"/></svg>
+        PWA iOS/Android
+      </span>
+      <span class="flex items-center gap-1.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><polyline points="20 6 9 17 4 12"/></svg>
+        Funciona offline
+      </span>
+      <span class="flex items-center gap-1.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><polyline points="20 6 9 17 4 12"/></svg>
+        Dark mode
+      </span>
     </div>
   </div>
 </BaseLayout>

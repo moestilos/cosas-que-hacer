@@ -1,9 +1,10 @@
 ---
 import AppShell from '@/layouts/AppShell.astro';
 import TaskList from '@/components/TaskList.tsx';
+import PageHeader from '@/components/PageHeader.tsx';
 const user = Astro.locals.user;
 ---
-<AppShell title="Hechas" active="done" userName={user?.name}>
-  <h2 class="text-2xl font-bold mt-4">Completadas</h2>
+<AppShell title="Completadas" active="done" userName={user?.name}>
+  <PageHeader title="Completadas" subtitle="Buen trabajo" />
   <TaskList view="done" client:load />
 </AppShell>

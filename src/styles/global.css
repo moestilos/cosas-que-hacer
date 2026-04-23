@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,40 +6,56 @@
 
 @layer base {
   :root {
-    --bg: 240 253 250;
+    --bg: 248 250 249;
+    --bg-elevated: 255 255 255;
     --surface: 255 255 255;
-    --border: 226 232 240;
-    --text: 19 78 74;
-    --muted: 71 85 105;
+    --surface-hover: 241 245 244;
+    --border: 226 232 231;
+    --border-strong: 203 213 212;
+    --text: 15 23 22;
+    --muted: 87 108 105;
     --primary: 13 148 136;
-    --cta: 249 115 22;
+    --primary-soft: 204 251 241;
+    --cta: 234 88 12;
     --danger: 220 38 38;
-    --warning: 217 119 6;
+    --warning: 202 138 4;
+    --success: 22 163 74;
   }
   .dark {
-    --bg: 10 15 14;
+    --bg: 8 12 11;
+    --bg-elevated: 14 19 18;
     --surface: 17 24 23;
-    --border: 31 42 40;
-    --text: 230 255 250;
-    --muted: 122 143 140;
-    --primary: 20 184 166;
+    --surface-hover: 23 32 30;
+    --border: 30 41 39;
+    --border-strong: 46 60 57;
+    --text: 236 254 250;
+    --muted: 134 155 152;
+    --primary: 45 212 191;
+    --primary-soft: 19 78 74;
     --cta: 249 115 22;
-    --danger: 239 68 68;
-    --warning: 245 158 11;
+    --danger: 248 113 113;
+    --warning: 251 191 36;
+    --success: 74 222 128;
   }
   html {
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-tap-highlight-color: transparent;
     -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
   body {
     @apply bg-bg text-text min-h-dvh;
     overscroll-behavior-y: none;
+    background-image:
+      radial-gradient(circle at 10% 0%, rgb(var(--primary) / 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 90% 100%, rgb(var(--cta) / 0.05) 0%, transparent 40%);
+    background-attachment: fixed;
   }
-  button, a { cursor: pointer; }
+  button, a, [role="button"] { cursor: pointer; }
   :focus-visible {
     @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-bg;
   }
+  ::selection { background: rgb(var(--primary) / 0.35); }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
@@ -50,15 +66,48 @@
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors duration-150;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 active:scale-[0.98];
   }
-  .btn-primary { @apply btn bg-primary text-white hover:opacity-90 disabled:opacity-50; }
-  .btn-ghost { @apply btn text-text hover:bg-surface; }
+  .btn-primary {
+    @apply btn bg-primary text-bg shadow-sm hover:shadow-md hover:shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-ghost {
+    @apply btn text-text bg-surface/60 hover:bg-surface border border-border hover:border-border-strong;
+  }
   .btn-danger { @apply btn bg-danger text-white hover:opacity-90; }
   .input {
-    @apply w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-text placeholder:text-muted focus:border-primary outline-none transition-colors;
+    @apply w-full rounded-xl border border-border bg-surface px-3.5 py-3 text-[15px] text-text placeholder:text-muted/70 focus:border-primary focus:bg-bg-elevated outline-none transition-all;
   }
   .card {
-    @apply rounded-xl border border-border bg-surface;
+    @apply rounded-2xl border border-border bg-surface/80 backdrop-blur-sm;
   }
+  .card-hover {
+    @apply card transition-all duration-200 hover:border-border-strong hover:bg-surface;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border border-border bg-surface/60;
+  }
+  .kbd {
+    @apply inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-md text-[10px] font-mono font-medium text-muted bg-surface border border-border;
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer utilities {
+  .animate-fade-up {
+    animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .animate-scale-in {
+    animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
 }

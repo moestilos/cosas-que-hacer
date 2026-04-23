@@ -47,11 +47,16 @@ export default function FabSheet({ demo }: { demo?: boolean }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        aria-label="Nueva tarea"
-        className="fixed right-4 bottom-20 z-40 mb-safe-bottom w-14 h-14 rounded-full bg-cta text-white shadow-lg shadow-cta/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 5rem)' }}
+        aria-label="Nueva tarea (atajo: N)"
+        title="Nueva tarea (N)"
+        className="fixed right-4 z-40 w-14 h-14 rounded-2xl text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 focus-visible:ring-4 focus-visible:ring-cta/40"
+        style={{
+          bottom: 'calc(env(safe-area-inset-bottom) + 4.75rem)',
+          background: 'linear-gradient(135deg, rgb(var(--cta)) 0%, rgb(var(--cta)) 50%, rgb(var(--primary)) 130%)',
+          boxShadow: '0 10px 30px -10px rgb(var(--cta) / 0.5), 0 4px 12px -4px rgb(var(--cta) / 0.3)',
+        }}
       >
-        <Plus size={26} strokeWidth={2.5} />
+        <Plus size={26} strokeWidth={2.75} />
       </button>
 
       <AnimatePresence>
@@ -70,50 +75,66 @@ export default function FabSheet({ demo }: { demo?: boolean }) {
               className="fixed left-0 right-0 bottom-0 z-50 bg-surface rounded-t-2xl border-t border-border p-4 pb-safe-bottom max-h-[90dvh] overflow-auto"
               style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
             >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">Nueva tarea</h2>
-                <button onClick={() => setOpen(false)} aria-label="Cerrar" className="p-1 rounded-lg hover:bg-bg">
-                  <X size={20} />
+              <div className="w-10 h-1 rounded-full bg-border mx-auto mb-4" aria-hidden />
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-lg font-semibold tracking-tight">Nueva tarea</h2>
+                <button onClick={() => setOpen(false)} aria-label="Cerrar" className="p-1.5 rounded-lg hover:bg-bg text-muted hover:text-text transition-colors">
+                  <X size={18} />
                 </button>
               </div>
-              <form onSubmit={submit} className="space-y-3">
+              <form onSubmit={submit} className="space-y-4">
                 <input
                   autoFocus
-                  className="input"
+                  className="input text-base font-medium"
                   placeholder="¿Qué hay que hacer?"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
                 />
                 <textarea
-                  className="input min-h-[70px] resize-none"
+                  className="input min-h-[64px] resize-none text-[14px]"
                   placeholder="Notas (opcional)"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-muted mb-1 block">Fecha límite</label>
-                    <input type="date" className="input" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+                <div>
+                  <label className="text-[11px] uppercase tracking-wider text-muted mb-2 block font-semibold">Prioridad</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      { v: 0, label: 'Baja', cls: priority === 0 ? 'border-muted bg-surface-hover text-text' : 'border-border text-muted hover:text-text', dot: 'bg-muted' },
+                      { v: 1, label: 'Media', cls: priority === 1 ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted hover:text-text', dot: 'bg-primary' },
+                      { v: 2, label: 'Alta', cls: priority === 2 ? 'border-warning bg-warning/10 text-warning' : 'border-border text-muted hover:text-text', dot: 'bg-warning' },
+                    ] as const).map((o) => (
+                      <button
+                        key={o.v}
+                        type="button"
+                        onClick={() => setPriority(o.v as Priority)}
+                        className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-sm font-medium transition-colors ${o.cls}`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${o.dot}`} aria-hidden />
+                        {o.label}
+                      </button>
+                    ))}
                   </div>
-                  <div>
-                    <label className="text-xs text-muted mb-1 block">Prioridad</label>
-                    <select className="input" value={priority} onChange={(e) => setPriority(Number(e.target.value) as Priority)}>
-                      <option value={0}>Baja</option>
-                      <option value={1}>Media</option>
-                      <option value={2}>Alta</option>
-                    </select>
-                  </div>
+                </div>
+                <div>
+                  <label htmlFor="due" className="text-[11px] uppercase tracking-wider text-muted mb-2 block font-semibold">Fecha límite</label>
+                  <input id="due" type="date" className="input" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                 </div>
                 {tags.length > 0 && (
                   <div>
-                    <label className="text-xs text-muted mb-1 block">Tag</label>
-                    <div className="flex flex-wrap gap-2">
-                      <button type="button" onClick={() => setTagId(null)} className={`px-3 py-1 rounded-full text-xs border ${tagId === null ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted'}`}>Ninguno</button>
+                    <label className="text-[11px] uppercase tracking-wider text-muted mb-2 block font-semibold">Tag</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button type="button" onClick={() => setTagId(null)} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${tagId === null ? 'border-text text-text' : 'border-border text-muted hover:text-text'}`}>Ninguno</button>
                       {tags.map((t) => (
-                        <button key={t.id} type="button" onClick={() => setTagId(t.id)}
-                          className={`px-3 py-1 rounded-full text-xs border ${tagId === t.id ? 'border-primary bg-primary/10' : 'border-border text-muted'}`}
-                          style={tagId === t.id ? { color: t.color, borderColor: t.color } : {}}
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setTagId(t.id)}
+                          className="px-3 py-1.5 rounded-full text-xs font-medium border transition-colors"
+                          style={tagId === t.id
+                            ? { color: t.color, borderColor: t.color, background: `${t.color}14` }
+                            : { color: 'rgb(var(--muted))', borderColor: 'rgb(var(--border))' }}
                         >
                           {t.name}
                         </button>
@@ -121,7 +142,7 @@ export default function FabSheet({ demo }: { demo?: boolean }) {
                     </div>
                   </div>
                 )}
-                <button type="submit" className="btn-primary w-full">Guardar</button>
+                <button type="submit" className="btn-primary w-full py-3.5 text-base">Guardar tarea</button>
               </form>
             </motion.div>
           </>

@@ -1,29 +1,35 @@
 import { useState } from 'react';
 import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
-import { Check, Trash2, Calendar, Flag, GripVertical } from 'lucide-react';
+import { Check, Calendar, GripVertical, Trash2 } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useTasks } from '@/lib/store';
 import { formatDue, cn } from '@/lib/utils';
 import type { Task } from '@/lib/types';
 
-const priorityClass: Record<number, string> = {
-  0: 'text-muted',
-  1: 'text-primary',
-  2: 'text-warning',
+const priorityBar: Record<number, string> = {
+  0: 'bg-muted/40',
+  1: 'bg-primary',
+  2: 'bg-warning',
 };
 
-export default function TaskItem({ task, onDeleted, sortable = false }: { task: Task; onDeleted?: (t: Task) => void; sortable?: boolean }) {
+const priorityLabel: Record<number, string> = {
+  0: 'Prioridad baja',
+  1: 'Prioridad media',
+  2: 'Prioridad alta',
+};
+
+export default function TaskItem({ task, onDeleted, sortable = false, index = 0 }: { task: Task; onDeleted?: (t: Task) => void; sortable?: boolean; index?: number }) {
   const toggle = useTasks((s) => s.toggle);
   const remove = useTasks((s) => s.remove);
   const tags = useTasks((s) => s.tags);
   const tag = task.tagId ? tags.find((t) => t.id === task.tagId) : null;
   const x = useMotionValue(0);
-  const bg = useTransform(x, [-120, 0, 120], ['rgba(239,68,68,0.25)', 'rgba(0,0,0,0)', 'rgba(20,184,166,0.25)']);
+  const leftBg = useTransform(x, [0, 120], [0, 1]);
+  const rightBg = useTransform(x, [-120, 0], [1, 0]);
   const [removing, setRemoving] = useState(false);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id, disabled: !sortable });
-
   const style = sortable ? { transform: CSS.Transform.toString(transform), transition } : undefined;
 
   async function onDragEnd(_: any, info: PanInfo) {
@@ -43,50 +49,85 @@ export default function TaskItem({ task, onDeleted, sortable = false }: { task: 
   const done = !!task.completedAt;
 
   return (
-    <motion.div ref={setNodeRef} style={{ ...style, background: bg }} className={cn('relative rounded-xl', isDragging && 'opacity-50')}>
+    <motion.div
+      ref={setNodeRef}
+      style={style}
+      initial={{ opacity: 0, y: 6 }}
+      animate={removing ? { opacity: 0, x: -400 } : { opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, delay: removing ? 0 : Math.min(index * 0.02, 0.2) }}
+      className={cn('relative rounded-2xl overflow-hidden', isDragging && 'opacity-50 z-10')}
+    >
+      {/* swipe backgrounds */}
+      <motion.div style={{ opacity: leftBg }} className="absolute inset-0 flex items-center justify-start pl-6 bg-primary/15 text-primary pointer-events-none" aria-hidden>
+        <Check size={22} strokeWidth={2.5} />
+      </motion.div>
+      <motion.div style={{ opacity: rightBg }} className="absolute inset-0 flex items-center justify-end pr-6 bg-danger/15 text-danger pointer-events-none" aria-hidden>
+        <Trash2 size={20} strokeWidth={2.25} />
+      </motion.div>
+
       <motion.div
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.2}
         style={{ x }}
         onDragEnd={onDragEnd}
-        animate={removing ? { opacity: 0, x: -400 } : {}}
-        transition={{ duration: 0.2 }}
-        className="card px-4 py-3 flex items-start gap-3 touch-pan-y"
-      >
-        {sortable && (
-          <button {...attributes} {...listeners} aria-label="Reordenar" className="text-muted p-1 -ml-1 mt-1 touch-none">
-            <GripVertical size={16} />
-          </button>
+        className={cn(
+          'relative card-hover flex items-stretch gap-0 touch-pan-y',
+          done && 'opacity-60',
         )}
-        <button
-          onClick={() => toggle(task.id)}
-          aria-label={done ? 'Marcar pendiente' : 'Completar'}
-          className={cn(
-            'mt-0.5 w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors',
-            done ? 'bg-primary border-primary' : 'border-border hover:border-primary',
+      >
+        {/* priority left bar */}
+        <span
+          aria-label={priorityLabel[task.priority]}
+          className={cn('w-1 shrink-0 rounded-l-2xl', priorityBar[task.priority])}
+        />
+
+        <div className="flex items-start gap-3 flex-1 min-w-0 px-4 py-3.5">
+          {sortable && (
+            <button {...attributes} {...listeners} aria-label="Reordenar" className="text-muted/60 hover:text-muted p-1 -ml-1 mt-0.5 touch-none">
+              <GripVertical size={16} />
+            </button>
           )}
-        >
-          {done && <Check size={14} className="text-white" strokeWidth={3} />}
-        </button>
-        <div className="flex-1 min-w-0">
-          <p className={cn('text-sm font-medium break-words transition-colors', done && 'line-through text-muted')}>
-            {task.title}
-          </p>
-          {task.notes && <p className="text-xs text-muted mt-0.5 break-words">{task.notes}</p>}
-          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            {due.label && (
-              <span className={cn('inline-flex items-center gap-1 text-xs', due.tone === 'danger' && 'text-danger', due.tone === 'warning' && 'text-warning', due.tone === 'primary' && 'text-primary', due.tone === 'muted' && 'text-muted')}>
-                <Calendar size={12} /> {due.label}
-              </span>
+          <button
+            onClick={() => toggle(task.id)}
+            aria-label={done ? 'Marcar pendiente' : 'Completar'}
+            className={cn(
+              'mt-0.5 w-[22px] h-[22px] shrink-0 rounded-full border-2 flex items-center justify-center transition-all',
+              done
+                ? 'bg-primary border-primary scale-100'
+                : 'border-border-strong hover:border-primary hover:scale-110 active:scale-95',
             )}
-            <span className={cn('inline-flex items-center gap-1 text-xs', priorityClass[task.priority])}>
-              <Flag size={12} />
-            </span>
-            {tag && (
-              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border" style={{ color: tag.color, borderColor: tag.color }}>
-                {tag.name}
-              </span>
+          >
+            {done && <Check size={12} className="text-bg" strokeWidth={3.5} />}
+          </button>
+          <div className="flex-1 min-w-0">
+            <p className={cn(
+              'text-[15px] font-medium break-words leading-snug transition-colors',
+              done && 'line-through text-muted',
+            )}>
+              {task.title}
+            </p>
+            {task.notes && <p className="text-[13px] text-muted mt-1 break-words leading-snug line-clamp-2">{task.notes}</p>}
+            {(due.label || tag) && (
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                {due.label && (
+                  <span className={cn(
+                    'inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full',
+                    due.tone === 'danger' && 'bg-danger/10 text-danger',
+                    due.tone === 'warning' && 'bg-warning/10 text-warning',
+                    due.tone === 'primary' && 'bg-primary/10 text-primary',
+                    due.tone === 'muted' && 'bg-surface-hover text-muted',
+                  )}>
+                    <Calendar size={11} strokeWidth={2.5} /> {due.label}
+                  </span>
+                )}
+                {tag && (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ color: tag.color, background: `${tag.color}18` }}>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: tag.color }} />
+                    {tag.name}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </div>

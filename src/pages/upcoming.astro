@@ -1,9 +1,10 @@
 ---
 import AppShell from '@/layouts/AppShell.astro';
 import TaskList from '@/components/TaskList.tsx';
+import PageHeader from '@/components/PageHeader.tsx';
 const user = Astro.locals.user;
 ---
 <AppShell title="Próximos 7 días" active="upcoming" userName={user?.name}>
-  <h2 class="text-2xl font-bold mt-4">Próximos 7 días</h2>
+  <PageHeader title="Próximos 7 días" subtitle="Lo que viene esta semana" />
   <TaskList view="upcoming" client:load />
 </AppShell>

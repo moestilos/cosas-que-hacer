@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Filter } from 'lucide-react';
 import { useTasks } from '@/lib/store';
 import { filterTasksDemo } from '@/lib/utils';
 import type { Task, View } from '@/lib/types';
@@ -49,21 +48,34 @@ export default function TaskList({ view, tagId, demo }: { view: View; tagId?: st
   }
 
   return (
-    <div className="space-y-2 pt-4">
-      <div className="flex items-center gap-2 flex-wrap mb-2">
-        <button onClick={() => setManualSort((v) => !v)} className={`text-xs px-3 py-1.5 rounded-full border ${manualSort ? 'border-primary text-primary' : 'border-border text-muted'}`}>
-          {manualSort ? 'Orden manual' : 'Orden auto'}
+    <div className="space-y-2.5 pt-4">
+      <div className="flex items-center gap-1.5 flex-wrap mb-3 -mx-1 px-1 overflow-x-auto scrollbar-none">
+        <button
+          onClick={() => setManualSort((v) => !v)}
+          className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${manualSort ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted hover:text-text hover:border-border-strong'}`}
+        >
+          {manualSort ? 'Manual' : 'Auto'}
         </button>
-        <span className="text-muted"><Filter size={14} /></span>
-        {[null, 2, 1, 0].map((p) => (
-          <button
-            key={String(p)}
-            onClick={() => setFp(p as any)}
-            className={`text-xs px-3 py-1.5 rounded-full border ${fp === p ? 'border-primary text-primary' : 'border-border text-muted'}`}
-          >
-            {p === null ? 'Todas' : p === 2 ? 'Alta' : p === 1 ? 'Media' : 'Baja'}
-          </button>
-        ))}
+        <span className="w-px h-5 bg-border mx-1" aria-hidden />
+        {([null, 2, 1, 0] as const).map((p) => {
+          const active = fp === p;
+          const activeCls = active
+            ? p === 2 ? 'border-warning bg-warning/10 text-warning'
+            : p === 0 ? 'border-muted bg-surface-hover text-text'
+            : 'border-primary bg-primary/10 text-primary'
+            : 'border-border text-muted hover:text-text hover:border-border-strong';
+          const dotCls = p === 2 ? 'bg-warning' : p === 0 ? 'bg-muted' : 'bg-primary';
+          return (
+            <button
+              key={String(p)}
+              onClick={() => setFp(p as any)}
+              className={`shrink-0 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${activeCls}`}
+            >
+              {p !== null && <span className={`w-1.5 h-1.5 rounded-full ${dotCls}`} aria-hidden />}
+              {p === null ? 'Todas' : p === 2 ? 'Alta' : p === 1 ? 'Media' : 'Baja'}
+            </button>
+          );
+        })}
       </div>
 
       {visible.length === 0 ? (
@@ -72,13 +84,13 @@ export default function TaskList({ view, tagId, demo }: { view: View; tagId?: st
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={visible.map((t) => t.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-2">
-              {visible.map((t) => <TaskItem key={t.id} task={t} onDeleted={setDeleted} sortable />)}
+              {visible.map((t, i) => <TaskItem key={t.id} task={t} onDeleted={setDeleted} sortable index={i} />)}
             </div>
           </SortableContext>
         </DndContext>
       ) : (
         <div className="space-y-2">
-          {visible.map((t) => <TaskItem key={t.id} task={t} onDeleted={setDeleted} />)}
+          {visible.map((t, i) => <TaskItem key={t.id} task={t} onDeleted={setDeleted} index={i} />)}
         </div>
       )}
 

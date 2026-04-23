@@ -3,11 +3,25 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import AuthForm from '@/components/AuthForm.tsx';
 ---
 <BaseLayout title="Entrar">
-  <div class="min-h-dvh flex flex-col items-center justify-center px-6 gap-6">
-    <h1 class="text-2xl font-semibold">Entrar</h1>
-    <AuthForm mode="login" client:load />
+  <div class="min-h-dvh flex flex-col items-center justify-center px-6 gap-6 pt-safe-top pb-safe-bottom">
+    <a href="/" class="flex items-center gap-2 text-muted hover:text-text text-sm absolute top-4 left-4" style="top: calc(env(safe-area-inset-top) + 1rem)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden><path d="m15 18-6-6 6-6"/></svg>
+      Atrás
+    </a>
+    <div class="w-full max-w-sm card p-7 animate-scale-in">
+      <div class="flex flex-col items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary" aria-hidden><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="text-center">
+          <h1 class="text-2xl font-bold tracking-tight">Bienvenido</h1>
+          <p class="text-sm text-muted mt-1">Entra para ver tus tareas</p>
+        </div>
+      </div>
+      <AuthForm mode="login" client:load />
+    </div>
     <p class="text-sm text-muted">
-      ¿Sin cuenta? <a href="/signup" class="text-primary hover:underline">Crear</a>
+      ¿Sin cuenta? <a href="/signup" class="text-primary hover:underline font-medium">Crear</a>
     </p>
     <a href="/demo" class="text-xs text-muted hover:text-text">O prueba sin registro</a>
   </div>
